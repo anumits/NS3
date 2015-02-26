@@ -175,6 +175,16 @@ RxDrop (Ptr<PcapFileWrapper> file, Ptr<const Packet> p)
   file->Write (Simulator::Now (), p);
 }
 
+static void
+TxTrace (/*Ptr<OutputStreamWrapper> stream2, */Ptr<const Packet> p)
+{
+  NS_LOG_UNCOND ("tx packet");
+  //NS_LOG_UNCOND ("Tx at " << Simulator::Now ().GetSeconds ());
+  //*stream2->GetStream () << "\t" << Simulator::Now ().GetSeconds ();
+}
+
+
+
 int main (int argc, char *argv[])
 {
 //int i = 0;
@@ -237,6 +247,9 @@ int main (int argc, char *argv[])
   AsciiTraceHelper asciiTraceHelper;
   Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream ("4Sixth.cwnd");
   ns3TcpSocket->TraceConnectWithoutContext ("CongestionWindow", MakeBoundCallback (&CwndChange, stream));
+
+  Ptr<OutputStreamWrapper> stream2 = asciiTraceHelper.CreateFileStream ("4SixthTx");
+  app->TraceConnectWithoutContext ("Tx", MakeBoundCallback (&TxTrace));
 
   PcapHelper pcapHelper;
   Ptr<PcapFileWrapper> file = pcapHelper.CreateFile ("4Sixth.pcap", std::ios::out, PcapHelper::DLT_PPP);
