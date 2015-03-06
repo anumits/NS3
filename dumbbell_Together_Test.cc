@@ -375,14 +375,14 @@ int main (int argc, char *argv[])
   Config::SetDefault ("ns3::FlowMonitor::StartTime",TimeValue (Seconds (0)));
   Config::SetDefault ("ns3::FlowMonitor::PacketSizeBinWidth", DoubleValue (1000));
 
-  enableFlowMonitor = true;
+ // enableFlowMonitor = true;
   // Flow Monitor
   Ptr<FlowMonitor> flowmon;
-  if (enableFlowMonitor)
-    {
+//  if (enableFlowMonitor)
+//    {
       FlowMonitorHelper flowmonHelper;
       flowmon = flowmonHelper.InstallAll ();
-    }
+//    }
 
 //
 // Now, do the actual simulation.
@@ -390,11 +390,38 @@ int main (int argc, char *argv[])
   NS_LOG_INFO ("Run Simulation.");
   Simulator::Stop (Seconds(50.0));
   Simulator::Run ();
-  if (enableFlowMonitor)
-    {
+//  if (enableFlowMonitor)
+//    {
 	  flowmon->CheckForLostPackets ();
 	  flowmon->SerializeToXmlFile("lab-2.flowmon", true, true);
-    }
+ //   }
+
+	  std::map<FlowId, FlowMonitor::FlowStats> stats = flowmon->GetFlowStats ();
+
+		uint32_t txPacketsum = 0;
+		uint32_t rxPacketsum = 0;
+		uint32_t DropPacketsum = 0;
+		uint32_t LostPacketsum = 0;
+		double Delaysum = 0;
+
+		for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i =stats.begin (); i != stats.end (); ++i)
+		{
+			   txPacketsum += i->second.txPackets;
+			   rxPacketsum += i->second.rxPackets;
+			   LostPacketsum += i->second.lostPackets;
+			   DropPacketsum += i->second.packetsDropped.size();
+			   Delaysum += i->second.delaySum.GetSeconds();
+		}
+		std::cout << "  All Tx Packets: " << txPacketsum << "\n";
+		std::cout << "  All Rx Packets: " << rxPacketsum << "\n";
+		std::cout << "  All Delay: " << Delaysum / txPacketsum <<"\n";
+		std::cout << "  All Lost Packets: " << LostPacketsum << "\n";
+		std::cout << "  All Drop Packets: " << DropPacketsum << "\n";
+		std::cout << "  Packets Delivery Ratio: " << ((rxPacketsum *100) /txPacketsum) << "%" << "\n";
+		std::cout << "  Packets Lost Ratio: " << ((LostPacketsum *100) /txPacketsum) << "%" << "\n";
+
+
+
   Simulator::Destroy ();
   NS_LOG_INFO ("Done.");
 }
