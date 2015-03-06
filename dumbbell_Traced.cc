@@ -34,9 +34,9 @@
 //
 //       n0 ---+        +--- n2
 //             |        |
-//       n1 ---n4 ----- n5
+//       n1 ---n4 ----- n9
 //             |        |
-//       n2 ---+        +--- n3 // Cut out for now
+//          ---+        +--- n3 // Cut out for now
 //
 // - All links are P2P with 500kb/s and 2ms
 // - TCP flow form n0 to n2
@@ -219,9 +219,9 @@ int main (int argc, char *argv[])
 
   NodeContainer n0n4 = NodeContainer (c.Get (0), c.Get (4));
   NodeContainer n1n4 = NodeContainer (c.Get (1), c.Get (4));
-  NodeContainer n2n5 = NodeContainer (c.Get (2), c.Get (5));
+  NodeContainer n2n9 = NodeContainer (c.Get (2), c.Get (9));
   //NodeContainer n3n5 = NodeContainer (c.Get (3), c.Get (5));
-  NodeContainer n4n5 = NodeContainer (c.Get (4), c.Get (5));
+  NodeContainer n4n9 = NodeContainer (c.Get (4), c.Get (9));
 
   //Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpReno"));
 
@@ -238,8 +238,8 @@ int main (int argc, char *argv[])
   p2p.SetChannelAttribute ("Delay", StringValue (lat));
   NetDeviceContainer d0d4 = p2p.Install (n0n4);
   NetDeviceContainer d1d4 = p2p.Install (n1n4);
-  NetDeviceContainer d4d5 = p2p.Install (n4n5);
-  NetDeviceContainer d2d5 = p2p.Install (n2n5);
+  NetDeviceContainer d4d5 = p2p.Install (n4n9);
+  NetDeviceContainer d2d5 = p2p.Install (n2n9);
   //NetDeviceContainer d3d5 = p2p.Install (n3n5);
 
 
@@ -362,7 +362,7 @@ int main (int argc, char *argv[])
   Simulator::Run ();
 
   flowmon->CheckForLostPackets ();
-  flowmon->SerializeToXmlFile("lab-2.flowmon", true, true);
+  flowmon->SerializeToXmlFile("dBellTraced.flowmon", true, true);
 
   std::map<FlowId, FlowMonitor::FlowStats> stats = flowmon->GetFlowStats ();
 
