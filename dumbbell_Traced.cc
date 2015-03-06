@@ -32,15 +32,15 @@
 
 // Network topology
 //
-//       n0 ---+        +--- n2
+//       n0 ---+        +--- n10
 //             |        |
 //       n1 ---n4 ----- n9
 //             |        |
 //          ---+        +--- n3 // Cut out for now
 //
 // - All links are P2P with 500kb/s and 2ms
-// - TCP flow form n0 to n2
-// - TCP flow from n1 to n2
+// - TCP flow form n0 to n10
+// - TCP flow from n1 to n10
 // - UDP flow from n1 to n3
 
 #include <fstream>
@@ -215,11 +215,11 @@ int main (int argc, char *argv[])
 //
   NS_LOG_INFO ("Create nodes.");
   NodeContainer c; // ALL Nodes
-  c.Create(6);
+  c.Create(10);
 
   NodeContainer n0n4 = NodeContainer (c.Get (0), c.Get (4));
   NodeContainer n1n4 = NodeContainer (c.Get (1), c.Get (4));
-  NodeContainer n2n9 = NodeContainer (c.Get (2), c.Get (9));
+  NodeContainer n10n9 = NodeContainer (c.Get (10), c.Get (9));
   //NodeContainer n3n5 = NodeContainer (c.Get (3), c.Get (5));
   NodeContainer n4n9 = NodeContainer (c.Get (4), c.Get (9));
 
@@ -238,14 +238,14 @@ int main (int argc, char *argv[])
   p2p.SetChannelAttribute ("Delay", StringValue (lat));
   NetDeviceContainer d0d4 = p2p.Install (n0n4);
   NetDeviceContainer d1d4 = p2p.Install (n1n4);
-  NetDeviceContainer d4d5 = p2p.Install (n4n9);
-  NetDeviceContainer d2d5 = p2p.Install (n2n9);
+  NetDeviceContainer d4d9 = p2p.Install (n4n9);
+  NetDeviceContainer d10d9 = p2p.Install (n10n9);
   //NetDeviceContainer d3d5 = p2p.Install (n3n5);
 
 
   Ptr<RateErrorModel> em = CreateObject<RateErrorModel> ();
   em->SetAttribute ("ErrorRate", DoubleValue (0.00001));
-  d2d5.Get (1)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
+  d10d9.Get (1)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
 
   //Simulator::Schedule (Seconds (2), &RateErrorModel::SetRate, em, 0.00002);
   for (int i=10; i<50;) {
@@ -267,10 +267,10 @@ int main (int argc, char *argv[])
   Ipv4InterfaceContainer i1i4 = ipv4.Assign (d1d4);
 
   ipv4.SetBase ("10.1.3.0", "255.255.255.0");
-  Ipv4InterfaceContainer i4i5 = ipv4.Assign (d4d5);
+  Ipv4InterfaceContainer i4i9 = ipv4.Assign (d4d9);
 
   ipv4.SetBase ("10.1.4.0", "255.255.255.0");
-  Ipv4InterfaceContainer i2i5 = ipv4.Assign (d2d5);
+  Ipv4InterfaceContainer i10i9 = ipv4.Assign (d10d9);
 
   ipv4.SetBase ("10.1.5.0", "255.255.255.0");
   //Ipv4InterfaceContainer i3i5 = ipv4.Assign (d3d5);
@@ -284,12 +284,12 @@ int main (int argc, char *argv[])
 
   NS_LOG_INFO ("Create Applications.");
 
-  // TCP connection from N0 to N2
+  // TCP connection from N0 to N10
 
   uint16_t sinkPort = 8080;
-  Address sinkAddress (InetSocketAddress (i2i5.GetAddress (0), sinkPort)); // interface of n2
+  Address sinkAddress (InetSocketAddress (i10i9.GetAddress (0), sinkPort)); // interface of n10
   PacketSinkHelper packetSinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), sinkPort));
-  ApplicationContainer sinkApps = packetSinkHelper.Install (c.Get (2)); //n2 as sink
+  ApplicationContainer sinkApps = packetSinkHelper.Install (c.Get (10)); //n10 as sink
   sinkApps.Start (Seconds (0.));
   sinkApps.Stop (Seconds (50.));
 
