@@ -34,7 +34,7 @@
 //
 //       n0 ---+        +--- n10
 //             |        |
-//       n1 ---n4 ----- n9
+//       n1 ---n8 ----- n9
 //             |        |
 //          ---+        +--- n3 // Cut out for now
 //
@@ -217,11 +217,11 @@ int main (int argc, char *argv[])
   NodeContainer c; // ALL Nodes
   c.Create(10);
 
-  NodeContainer n0n4 = NodeContainer (c.Get (0), c.Get (4));
-  NodeContainer n1n4 = NodeContainer (c.Get (1), c.Get (4));
+  NodeContainer n0n8 = NodeContainer (c.Get (0), c.Get (8));
+  NodeContainer n1n8 = NodeContainer (c.Get (1), c.Get (8));
   NodeContainer n10n9 = NodeContainer (c.Get (10), c.Get (9));
   //NodeContainer n3n5 = NodeContainer (c.Get (3), c.Get (5));
-  NodeContainer n4n9 = NodeContainer (c.Get (4), c.Get (9));
+  NodeContainer n8n9 = NodeContainer (c.Get (8), c.Get (9));
 
   //Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpReno"));
 
@@ -236,9 +236,9 @@ int main (int argc, char *argv[])
   PointToPointHelper p2p;
   p2p.SetDeviceAttribute ("DataRate", StringValue (rate));
   p2p.SetChannelAttribute ("Delay", StringValue (lat));
-  NetDeviceContainer d0d4 = p2p.Install (n0n4);
-  NetDeviceContainer d1d4 = p2p.Install (n1n4);
-  NetDeviceContainer d4d9 = p2p.Install (n4n9);
+  NetDeviceContainer d0d8 = p2p.Install (n0n8);
+  NetDeviceContainer d1d8 = p2p.Install (n1n8);
+  NetDeviceContainer d8d9 = p2p.Install (n8n9);
   NetDeviceContainer d10d9 = p2p.Install (n10n9);
   //NetDeviceContainer d3d5 = p2p.Install (n3n5);
 
@@ -261,13 +261,13 @@ int main (int argc, char *argv[])
   NS_LOG_INFO ("Assign IP Addresses.");
   Ipv4AddressHelper ipv4;
   ipv4.SetBase ("10.1.1.0", "255.255.255.0");
-  Ipv4InterfaceContainer i0i4 = ipv4.Assign (d0d4);
+  Ipv4InterfaceContainer i0i8 = ipv4.Assign (d0d8);
 
   ipv4.SetBase ("10.1.2.0", "255.255.255.0");
-  Ipv4InterfaceContainer i1i4 = ipv4.Assign (d1d4);
+  Ipv4InterfaceContainer i1i8 = ipv4.Assign (d1d8);
 
   ipv4.SetBase ("10.1.3.0", "255.255.255.0");
-  Ipv4InterfaceContainer i4i9 = ipv4.Assign (d4d9);
+  Ipv4InterfaceContainer i8i9 = ipv4.Assign (d8d9);
 
   ipv4.SetBase ("10.1.4.0", "255.255.255.0");
   Ipv4InterfaceContainer i10i9 = ipv4.Assign (d10d9);
