@@ -159,6 +159,7 @@ MyApp::ScheduleTx (void)
       m_sendEvent = Simulator::Schedule (tNext, &MyApp::SendPacket, this);
     }
 }
+
 int tCnt = 1;
 static void
 CwndChange (Ptr<OutputStreamWrapper> stream, uint32_t oldCwnd, uint32_t newCwnd)
@@ -174,13 +175,13 @@ RxDrop (Ptr<PcapFileWrapper> file, Ptr<const Packet> p)
   NS_LOG_UNCOND ("RxDrop at " << Simulator::Now ().GetSeconds ());
   file->Write (Simulator::Now (), p);
 }
-
+int tCnt2 = 1;
 static void
-TxTrace (/*Ptr<OutputStreamWrapper> stream2, */Ptr<const Packet> p)
+TxTrace (Ptr<OutputStreamWrapper> stream2, Ptr<const Packet> p)
 {
-  NS_LOG_UNCOND ("tx packet");
-  //NS_LOG_UNCOND ("Tx at " << Simulator::Now ().GetSeconds ());
-  //*stream2->GetStream () << "\t" << Simulator::Now ().GetSeconds ();
+
+  NS_LOG_UNCOND ("Tx at " << Simulator::Now ().GetSeconds ());
+  *stream2->GetStream () << tCnt2++ << "\t" << Simulator::Now ().GetSeconds ()<< std::endl;
 }
 
 
@@ -220,7 +221,7 @@ int main (int argc, char *argv[])
     devices.Get (1)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
 
     //Simulator::Schedule (Seconds (2), &RateErrorModel::SetRate, em, 0.00002);
-    Simulator::Schedule (Seconds (5), &RateErrorModel::SetRate, em, 1);
+    //Simulator::Schedule (Seconds (5), &RateErrorModel::SetRate, em, 1);
 
   InternetStackHelper stack;
   stack.Install (nodes);
@@ -249,14 +250,59 @@ int main (int argc, char *argv[])
   ns3TcpSocket->TraceConnectWithoutContext ("CongestionWindow", MakeBoundCallback (&CwndChange, stream));
 
   Ptr<OutputStreamWrapper> stream2 = asciiTraceHelper.CreateFileStream ("4SixthTx");
-  app->TraceConnectWithoutContext ("Tx", MakeBoundCallback (&TxTrace));
+  devices.Get (0)->TraceConnectWithoutContext ("PhyTxBegin", MakeBoundCallback (&TxTrace, stream2));
 
   PcapHelper pcapHelper;
   Ptr<PcapFileWrapper> file = pcapHelper.CreateFile ("4Sixth.pcap", std::ios::out, PcapHelper::DLT_PPP);
   devices.Get (1)->TraceConnectWithoutContext ("PhyRxDrop", MakeBoundCallback (&RxDrop, file));
 
+
+
+  	 // bool enableFlowMonitor = true;
+    // Flow Monitor
+    Ptr<FlowMonitor> flowmon;
+
+        FlowMonitorHelper flowmonHelper;
+        flowmon = flowmonHelper.InstallAll ();
+		//flowmon->SetAttribute (”timeFirstTxPacket”, DoubleValue(0.001));
+		//flowmon->SetAttribute (”timeFirstRxPacket”,DoubleValue (0.001));
+
+
+
   Simulator::Stop (Seconds (20));
   Simulator::Run ();
+  /*if (enableFlowMonitor)
+      {
+  	  //flowmon->CheckForLostPackets ();
+
+  	  flowmon->SerializeToXmlFile("lab-2.flowmon", true, true);
+      }*/
+
+  flowmon->CheckForLostPackets ();
+  flowmon->SerializeToXmlFile("4Sixth.flowmon", true, true);
+          std::map<FlowId, FlowMonitor::FlowStats> stats = flowmon->GetFlowStats ();
+
+          uint32_t txPacketsum = 0;
+          uint32_t rxPacketsum = 0;
+          uint32_t DropPacketsum = 0;
+          uint32_t LostPacketsum = 0;
+          double Delaysum = 0;
+
+          for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i =stats.begin (); i != stats.end (); ++i)
+          {
+                  txPacketsum += i->second.txPackets;
+                  rxPacketsum += i->second.rxPackets;
+                  LostPacketsum += i->second.lostPackets;
+                  DropPacketsum += i->second.packetsDropped.size();
+                  Delaysum += i->second.delaySum.GetSeconds();
+          }
+          std::cout << "  All Tx Packets: " << txPacketsum << "\n";
+          std::cout << "  All Rx Packets: " << rxPacketsum << "\n";
+          std::cout << "  All Delay: " << Delaysum / txPacketsum <<"\n";
+          std::cout << "  All Lost Packets: " << LostPacketsum << "\n";
+          std::cout << "  All Drop Packets: " << DropPacketsum << "\n";
+          std::cout << "  Packets Delivery Ratio: " << ((rxPacketsum *100) /txPacketsum) << "%" << "\n";
+          std::cout << "  Packets Lost Ratio: " << ((LostPacketsum *100) /txPacketsum) << "%" << "\n";
   Simulator::Destroy ();
 
   return 0;
