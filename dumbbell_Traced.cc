@@ -33,10 +33,11 @@
 // Network topology
 //
 //       n0 ---+        +--- n10
-//             |        |
-//       n1 ---n8 ----- n9
-//             |        |
-//          ---+        +--- n3 // Cut out for now
+//       n1 ---|        |
+//       n2 ---n8 ----- n9
+//       :     |        |
+//       n6 ---|
+//       n7 ---+        +--- n11 // Cut out for now
 //
 // - All links are P2P with 500kb/s and 2ms
 // - TCP flow form n0 to n10
@@ -195,6 +196,15 @@ CwndChange2 (Ptr<OutputStreamWrapper> stream, uint32_t oldCwnd, uint32_t newCwnd
 }
 
 
+static void
+TxTrace (Ptr<OutputStreamWrapper> stream, Ptr<const Packet> p)
+{
+  NS_LOG_UNCOND ("Tx at " << Simulator::Now ().GetSeconds ());
+  *stream->GetStream () << Simulator::Now ().GetSeconds ()<< std::endl;
+}
+
+
+
 
 int main (int argc, char *argv[])
 {
@@ -215,12 +225,17 @@ int main (int argc, char *argv[])
 //
   NS_LOG_INFO ("Create nodes.");
   NodeContainer c; // ALL Nodes
-  c.Create(10);
+  c.Create(11);
 
   NodeContainer n0n8 = NodeContainer (c.Get (0), c.Get (8));
   NodeContainer n1n8 = NodeContainer (c.Get (1), c.Get (8));
+  NodeContainer n2n8 = NodeContainer (c.Get (2), c.Get (8));
+  NodeContainer n3n8 = NodeContainer (c.Get (3), c.Get (8));
+  NodeContainer n4n8 = NodeContainer (c.Get (4), c.Get (8));
+  NodeContainer n5n8 = NodeContainer (c.Get (5), c.Get (8));
+  NodeContainer n6n8 = NodeContainer (c.Get (6), c.Get (8));
+  NodeContainer n7n8 = NodeContainer (c.Get (7), c.Get (8));
   NodeContainer n10n9 = NodeContainer (c.Get (10), c.Get (9));
-  //NodeContainer n3n5 = NodeContainer (c.Get (3), c.Get (5));
   NodeContainer n8n9 = NodeContainer (c.Get (8), c.Get (9));
 
   //Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpReno"));
@@ -238,6 +253,12 @@ int main (int argc, char *argv[])
   p2p.SetChannelAttribute ("Delay", StringValue (lat));
   NetDeviceContainer d0d8 = p2p.Install (n0n8);
   NetDeviceContainer d1d8 = p2p.Install (n1n8);
+  NetDeviceContainer d3d8 = p2p.Install (n3n8);
+  NetDeviceContainer d4d8 = p2p.Install (n4n8);
+  NetDeviceContainer d5d8 = p2p.Install (n5n8);
+  NetDeviceContainer d6d8 = p2p.Install (n6n8);
+  NetDeviceContainer d7d8 = p2p.Install (n7n8);
+
   NetDeviceContainer d8d9 = p2p.Install (n8n9);
   NetDeviceContainer d10d9 = p2p.Install (n10n9);
   //NetDeviceContainer d3d5 = p2p.Install (n3n5);
@@ -293,35 +314,39 @@ int main (int argc, char *argv[])
   sinkApps.Start (Seconds (0.));
   sinkApps.Stop (Seconds (50.));
 
-  Ptr<Socket> ns3TcpSocket = Socket::CreateSocket (c.Get (0), TcpSocketFactory::GetTypeId ()); //source at n0
-  Ptr<Socket> ns3TcpSocket2 = Socket::CreateSocket (c.Get (1), TcpSocketFactory::GetTypeId ()); //source at n1
+  Ptr<Socket> ns3TcpSocket0 = Socket::CreateSocket (c.Get (0), TcpSocketFactory::GetTypeId ()); //source at n0
+  Ptr<Socket> ns3TcpSocket1 = Socket::CreateSocket (c.Get (1), TcpSocketFactory::GetTypeId ()); //source at n1
 
 
 
   // Trace Congestion window
-  ns3TcpSocket->TraceConnectWithoutContext ("CongestionWindow", MakeCallback (&CwndChange));
-  ns3TcpSocket2->TraceConnectWithoutContext ("CongestionWindow", MakeCallback (&CwndChange));
+  ns3TcpSocket0->TraceConnectWithoutContext ("CongestionWindow", MakeCallback (&CwndChange));
+  ns3TcpSocket1->TraceConnectWithoutContext ("CongestionWindow", MakeCallback (&CwndChange));
 
   AsciiTraceHelper asciiTraceHelper;
   Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream ("dBell1_10secOnOff.cwnd");
-  ns3TcpSocket->TraceConnectWithoutContext ("CongestionWindow", MakeBoundCallback (&CwndChange2, stream));
+  ns3TcpSocket0->TraceConnectWithoutContext ("CongestionWindow", MakeBoundCallback (&CwndChange2, stream));
   Ptr<OutputStreamWrapper> stream2 = asciiTraceHelper.CreateFileStream ("dBell2_10secOnOff.cwnd");
-  ns3TcpSocket2->TraceConnectWithoutContext ("CongestionWindow", MakeBoundCallback (&CwndChange2, stream2));
+  ns3TcpSocket1->TraceConnectWithoutContext ("CongestionWindow", MakeBoundCallback (&CwndChange2, stream2));
+
+  Ptr<OutputStreamWrapper> streamN0 = asciiTraceHelper.CreateFileStream ("N0_Tx");
+  d0d8.Get (0)->TraceConnectWithoutContext ("PhyTxBegin", MakeBoundCallback (&TxTrace, streamN0));
+  Ptr<OutputStreamWrapper> streamN1 = asciiTraceHelper.CreateFileStream ("N1_Tx");
+  d1d8.Get (0)->TraceConnectWithoutContext ("PhyTxBegin", MakeBoundCallback (&TxTrace, streamN1));
+
 
 
   // Create TCP application at n0, n1
   Ptr<MyApp> app = CreateObject<MyApp> ();
   Ptr<MyApp> app2 = CreateObject<MyApp> ();
-  app->Setup (ns3TcpSocket, sinkAddress, 1040, 100000, DataRate ("250Kbps"));
-  app2->Setup (ns3TcpSocket2, sinkAddress, 1040, 100000, DataRate ("10000Kbps"));
+  app->Setup (ns3TcpSocket0, sinkAddress, 1040, 100000, DataRate ("250Kbps"));
+  app2->Setup (ns3TcpSocket1, sinkAddress, 1040, 100000, DataRate ("10000Kbps"));
   c.Get (0)->AddApplication (app);
   c.Get (1)->AddApplication (app2);
   app->SetStartTime (Seconds (1.));
   app->SetStopTime (Seconds (50.));
   app2->SetStartTime (Seconds (1.));
   app2->SetStopTime (Seconds (50.));
-
-
 
 
 
