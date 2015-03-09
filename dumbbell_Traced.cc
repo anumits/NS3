@@ -204,6 +204,12 @@ TxTrace (Ptr<OutputStreamWrapper> stream, Ptr<const Packet> p)
 }
 
 
+static void
+RxTrace (Ptr<OutputStreamWrapper> stream, Ptr<const Packet> p)
+{
+  NS_LOG_UNCOND ("Rx at " << Simulator::Now ().GetSeconds ());
+  *stream->GetStream () << tCnt++ << "\t" << Simulator::Now ().GetSeconds ()<< std::endl;
+}
 
 
 int main (int argc, char *argv[])
@@ -238,6 +244,10 @@ int main (int argc, char *argv[])
   NodeContainer n10n9 = NodeContainer (c.Get (10), c.Get (9));
   NodeContainer n8n9 = NodeContainer (c.Get (8), c.Get (9));
 
+
+  /*
+   * SET TCP TYPE:
+  */
   //Config::SetDefault ("ns3::TcpL4Protocol::SocketType", StringValue ("ns3::TcpReno"));
 
 //
@@ -333,14 +343,16 @@ int main (int argc, char *argv[])
   d0d8.Get (0)->TraceConnectWithoutContext ("PhyTxBegin", MakeBoundCallback (&TxTrace, streamN0));
   Ptr<OutputStreamWrapper> streamN1 = asciiTraceHelper.CreateFileStream ("N1_Tx");
   d1d8.Get (0)->TraceConnectWithoutContext ("PhyTxBegin", MakeBoundCallback (&TxTrace, streamN1));
+  Ptr<OutputStreamWrapper> streamN10 = asciiTraceHelper.CreateFileStream ("N10_Rx");
+  d10d9.Get (1)->TraceConnectWithoutContext ("PhyRxEnd", MakeBoundCallback (&RxTrace, streamN10));
 
 
 
   // Create TCP application at n0, n1
   Ptr<MyApp> app = CreateObject<MyApp> ();
   Ptr<MyApp> app2 = CreateObject<MyApp> ();
-  app->Setup (ns3TcpSocket0, sinkAddress, 1040, 100000, DataRate ("250Kbps"));
-  app2->Setup (ns3TcpSocket1, sinkAddress, 1040, 100000, DataRate ("10000Kbps"));
+  app->Setup (ns3TcpSocket0, sinkAddress, 1040, 10000000, DataRate ("250Kbps"));
+  app2->Setup (ns3TcpSocket1, sinkAddress, 1040, 10000000, DataRate ("10000Kbps"));
   c.Get (0)->AddApplication (app);
   c.Get (1)->AddApplication (app2);
   app->SetStartTime (Seconds (1.));
